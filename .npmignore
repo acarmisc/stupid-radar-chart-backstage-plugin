@@ -1,0 +1,9 @@
+src/
+dev/
+tsconfig.json
+.github/
+*.test.ts
+*.test.tsx
+coverage/
+.gitignore
+.DS_Store
