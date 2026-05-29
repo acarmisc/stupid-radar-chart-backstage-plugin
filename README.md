@@ -1,26 +1,35 @@
 # @andreacarmisciano/plugin-radar-chart
 
-A frontend-only Backstage plugin that integrates KPI radar charts powered by a remote Cloud Run instance. Generate professional radar charts from any Backstage instance without a backend plugin — the plugin communicates directly with the stupid-radar-chart Cloud Run service.
+Frontend-only Backstage plugin that embeds KPI radar charts produced by a remote chart-rendering service. The plugin issues HTTP calls directly from the browser to a service base URL you provide — no Backstage backend plugin required.
 
 ## Architecture
 
-- **Frontend-only**: No backend plugin needed
-- **Remote API**: Calls `https://stupid-radar-chart-873837240388.us-central1.run.app`
-- **Two modes**:
-  - **EntityRadarChartCard**: Annotation-driven, read-only card that appears on annotated Backstage entities
-  - **RadarPage**: Full configuration UI for generating and saving new charts
+- **Frontend-only.** Ships as a `frontend-plugin`; nothing runs server-side.
+- **Remote API.** All chart generation, persistence, and retrieval go to the URL set in `radarChart.baseUrl`.
+- **Two surfaces:**
+  - `EntityRadarChartCard` — annotation-driven, read-only card on Component entities.
+  - `RadarPage` — full configuration UI to build and persist new charts.
 
-## Prerequisites: CORS
+## Prerequisites
 
-The Cloud Run instance must allow CORS requests from your Backstage origin. Add the following CORS header to the Cloud Run app's API responses:
+### Configure the service base URL
+
+The plugin will throw at runtime if `radarChart.baseUrl` is not set. Add it to your `app-config.yaml`:
+
+```yaml
+radarChart:
+  baseUrl: 'https://<your-radar-chart-service>'
+```
+
+### CORS
+
+The upstream service must allow CORS requests from your Backstage origin:
 
 ```
-Access-Control-Allow-Origin: https://your-backstage-origin.com
+Access-Control-Allow-Origin: https://<your-backstage-origin>
 Access-Control-Allow-Methods: GET, POST, OPTIONS
 Access-Control-Allow-Headers: Content-Type
 ```
-
-See [stupid-radar-chart](https://github.com/andreacarmisciano/stupid-radar-chart) for CORS configuration details.
 
 ## Installation
 
@@ -28,94 +37,53 @@ See [stupid-radar-chart](https://github.com/andreacarmisciano/stupid-radar-chart
 yarn add @andreacarmisciano/plugin-radar-chart
 ```
 
-## Usage: New Frontend System
-
-### Register the plugin in `app-config.yaml`
-
-```yaml
-features:
-  - radarChartPlugin
-```
-
-### Mount in your frontend app
+## Usage (new frontend system)
 
 ```typescript
 // packages/app/src/App.tsx
-import { radarChartPlugin } from '@andreacarmisciano/plugin-radar-chart';
+import radarChartPlugin from '@andreacarmisciano/plugin-radar-chart';
 
 const app = createApp({
   features: [
-    // ... other plugins
+    // ...
     radarChartPlugin,
   ],
-  // ... other config
 });
 ```
 
-### Use EntityRadarChartCard on entity pages
+`EntityRadarChartCard` is registered with the plugin and renders on `kind:Component` entities that carry the `radar-chart/kpis` annotation. Entities without the annotation render nothing.
 
-The card is automatically registered and will appear on `kind:component` entities that have the `radar-chart/kpis` annotation.
-
-## Usage: Legacy Classic API
-
-If your Backstage instance still uses the classic frontend system:
+## Usage (legacy classic API)
 
 ```typescript
-// packages/app/src/App.tsx
-import { radarChartPlugin, EntityRadarChartCard } from '@andreacarmisciano/plugin-radar-chart';
+import {
+  radarChartPlugin,
+  RadarPage,
+  EntityRadarChartCard,
+} from '@andreacarmisciano/plugin-radar-chart';
 
 // Register the plugin
-const app = createApp({
-  plugins: [radarChartPlugin],
-});
+const app = createApp({ plugins: [radarChartPlugin] });
 
-// Add route (if not using sidebar routing)
-export default app.build().createRoot(
-  <>
-    <Root>
-      <Routes>
-        <Route path="/radar" element={<RadarPage />} />
-        {/* ... */}
-      </Routes>
-    </Root>
-  </>
-);
+// Route
+<Route path="/radar" element={<RadarPage />} />
+
+// Entity card
+<EntityLayout.Route path="/" title="Overview">
+  <EntityRadarChartCard />
+</EntityLayout.Route>
 ```
 
-Add the EntityRadarChartCard to entity pages:
+## Annotations: `EntityRadarChartCard`
 
-```typescript
-// In EntityLayout
-<EntityLayout>
-  <EntityLayout.Route if={isComponentEntity} path="/">
-    <EntityRadarChartCard />
-  </EntityLayout.Route>
-</EntityLayout>
-```
+### Required: `radar-chart/kpis`
 
-## Configuration
+JSON object mapping KPI name → integer in `[1, 100]`. Unknown keys are preserved (forward-compatible). The locked KPI names (`author`, `ai`, `team`, `research`, `unspecified`) default to `50` when omitted.
 
-### Override base URL in `app-config.yaml`
+### Optional
 
-By default, the plugin connects to the public Cloud Run instance. To use a different instance:
-
-```yaml
-radarChart:
-  baseUrl: 'https://your-custom-radar-instance.com'
-```
-
-## Annotations: EntityRadarChartCard
-
-The EntityRadarChartCard appears on component entities when the `radar-chart/kpis` annotation is present.
-
-### Required annotation: `radar-chart/kpis`
-
-JSON object with KPI values (1-100). Unknown keys are preserved for forward compatibility. Locked KPI names (`author`, `ai`, `team`, `research`, `unspecified`) default to 50 if omitted.
-
-### Optional annotations
-
-- `radar-chart/title` — Custom card title (defaults to entity name)
-- `radar-chart/show-author` — `"true"` (default) or `"false"` to hide author name in chart title
+- `radar-chart/title` — overrides the card title (defaults to entity name).
+- `radar-chart/show-author` — `"true"` (default) or `"false"`.
 
 ### Example `catalog-info.yaml`
 
@@ -124,7 +92,6 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: my-service
-  namespace: default
   annotations:
     radar-chart/kpis: |
       {
@@ -143,15 +110,27 @@ spec:
   owner: team-a
 ```
 
-## RadarPage: Configuration UI
+Malformed JSON or out-of-range values render a `ResponseErrorPanel` instead of the chart.
 
-Navigate to `/radar` to access the full configuration interface. The page offers:
+## `RadarPage`
 
-- **Configuration form**: Edit title, author, deliverable type, locked KPIs, and add custom KPIs
-- **Live chart preview**: See changes in real-time
-- **Generate & Save**: Generate a PNG and save to the cloud (returns shareable URL)
-- **Share box**: Copy shareable URL after saving
+Mount on a route (`/radar` by convention) to expose:
+
+- a configuration form (title, author, deliverable type, locked KPIs, optional custom KPI),
+- a live preview rendered with `react-chartjs-2`,
+- a "Generate PNG & Save" action that persists the chart on the remote service, downloads the PNG, and exposes a shareable URL.
+
+## Configuration reference
+
+| Key                  | Type   | Required | Description                                  |
+| -------------------- | ------ | -------- | -------------------------------------------- |
+| `radarChart.baseUrl` | string | yes      | Base URL of the remote chart-rendering service. |
+
+## Release / CI
+
+- `.github/workflows/ci.yml` — lint + test + build on push and PR to `main`.
+- `.github/workflows/release.yml` — publishes to npm and creates a GitHub release on tags matching `v*.*.*`. Requires the `NPM_TOKEN` repository secret (npm automation token with publish access to the `@andreacarmisciano` scope).
 
 ## License
 
-MIT — Copyright 2026 Andrea Carmisciano
+MIT

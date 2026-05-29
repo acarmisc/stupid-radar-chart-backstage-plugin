@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { screen } from '@testing-library/react';
 import { Entity } from '@backstage/catalog-model';
 import { EntityProvider } from '@backstage/plugin-catalog-react';
-import { TestApiProvider } from '@backstage/test-utils';
+import { renderInTestApp } from '@backstage/test-utils';
 import { EntityRadarChartCard } from './EntityRadarChartCard';
 
 describe('EntityRadarChartCard', () => {
@@ -16,54 +16,49 @@ describe('EntityRadarChartCard', () => {
     },
   });
 
-  const renderCard = (entity: Entity) => {
-    return render(
-      <TestApiProvider apis={[]}>
-        <EntityProvider entity={entity}>
-          <EntityRadarChartCard />
-        </EntityProvider>
-      </TestApiProvider>
+  const renderCard = (entity: Entity) =>
+    renderInTestApp(
+      <EntityProvider entity={entity}>
+        <EntityRadarChartCard />
+      </EntityProvider>,
     );
-  };
 
-  it('returns null when annotation is missing', () => {
+  it('returns null when annotation is missing', async () => {
     const entity = createEntity();
-    const { container } = renderCard(entity);
+    const { container } = await renderCard(entity);
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders card with radar chart when annotation is present', () => {
+  it('renders card with radar chart when annotation is present', async () => {
     const entity = createEntity({
       'radar-chart/kpis': '{"author":80,"ai":40,"team":90,"research":55,"unspecified":30}',
     });
-    renderCard(entity);
-    // The InfoCard renders with the entity name
+    await renderCard(entity);
     expect(screen.getByText('test-component')).toBeInTheDocument();
   });
 
-  it('renders card with custom title annotation', () => {
+  it('renders card with custom title annotation', async () => {
     const entity = createEntity({
       'radar-chart/kpis': '{"author":80}',
       'radar-chart/title': 'Custom Title',
     });
-    renderCard(entity);
+    await renderCard(entity);
     expect(screen.getByText('Custom Title')).toBeInTheDocument();
   });
 
-  it('renders error panel on malformed JSON', () => {
+  it('renders error panel on malformed JSON', async () => {
     const entity = createEntity({
       'radar-chart/kpis': 'not json',
     });
-    renderCard(entity);
-    // ResponseErrorPanel should render
-    expect(screen.getByText(/Failed to parse/)).toBeInTheDocument();
+    await renderCard(entity);
+    expect(screen.getAllByText(/Failed to parse/).length).toBeGreaterThan(0);
   });
 
-  it('renders error panel on invalid KPI value', () => {
+  it('renders error panel on invalid KPI value', async () => {
     const entity = createEntity({
       'radar-chart/kpis': '{"author":150}',
     });
-    renderCard(entity);
-    expect(screen.getByText(/invalid value/)).toBeInTheDocument();
+    await renderCard(entity);
+    expect(screen.getAllByText(/invalid value/).length).toBeGreaterThan(0);
   });
 });

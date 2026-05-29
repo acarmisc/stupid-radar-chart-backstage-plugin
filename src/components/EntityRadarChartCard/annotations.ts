@@ -37,7 +37,7 @@ export function parseRadarAnnotations(entity: Entity): RadarAnnotationData | nul
     throw new AnnotationParseError(`Failed to parse ${RADAR_CHART_KPI_ANNOTATION}: ${e instanceof Error ? e.message : String(e)}`);
   }
 
-  if (!kpis || typeof kpis !== 'object') {
+  if (!kpis || typeof kpis !== 'object' || Array.isArray(kpis)) {
     throw new AnnotationParseError(`${RADAR_CHART_KPI_ANNOTATION} must be a JSON object`);
   }
 

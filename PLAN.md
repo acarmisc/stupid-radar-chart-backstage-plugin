@@ -1,12 +1,12 @@
 # Backstage Plugin Plan — `@andreacarmisciano/plugin-radar-chart`
 
-Frontend-only Backstage plugin that talks to a remote Cloud Run instance of `stupid-radar-chart`. No backend plugin. Source-of-truth UI for KPI radar charts lives at Cloud Run; this plugin embeds it natively in Backstage.
+Frontend-only Backstage plugin that talks to a remote chart-rendering service. No backend plugin. The remote service is the source of truth for KPI radar chart generation; this plugin embeds it natively in Backstage.
 
 ## Decisions locked
 
 - **Option E** — frontend-only, calls remote API
 - **Mode 1** for EntityRadarChartCard — annotation-driven, read-only
-- Remote base URL: `https://stupid-radar-chart-873837240388.us-central1.run.app`
+- Remote base URL: required from `radarChart.baseUrl` in `app-config.yaml` — plugin throws if missing, no hardcoded default
 - Backstage frontend system: **new** (`@backstage/frontend-plugin-api`) with classic export shim for back-compat where trivial
 - Form rewritten in **MUI** (drop Tailwind in plugin)
 - React 18 peer dep (Backstage native)
@@ -16,7 +16,7 @@ Frontend-only Backstage plugin that talks to a remote Cloud Run instance of `stu
 ## Repo layout (target)
 
 ```
-stupid-radar-chart-backstage-plugin/
+<plugin-repo>/
 ├── PLAN.md                          (this file)
 ├── README.md                        (install + usage + annotations)
 ├── LICENSE                          (MIT)
@@ -74,7 +74,7 @@ export { radarApiRef } from './api/RadarApi';
 export interface Config {
   radarChart?: {
     /**
-     * Base URL of the stupid-radar-chart Cloud Run instance.
+     * Base URL of the upstream radar chart service.
      * @visibility frontend
      */
     baseUrl: string;
@@ -82,7 +82,7 @@ export interface Config {
 }
 ```
 
-Defaults to `https://stupid-radar-chart-873837240388.us-central1.run.app` if not set.
+Required: the plugin throws at runtime if `radarChart.baseUrl` is not configured.
 
 ## Annotations contract (Mode 1)
 
@@ -125,7 +125,7 @@ Endpoints called:
 
 ## Dev harness
 
-`dev/index.tsx` uses `@backstage/frontend-test-utils` (or `@backstage/dev-utils` for legacy) so contributors run `yarn start` to preview the page in isolation against the live Cloud Run instance.
+`dev/index.tsx` uses `@backstage/dev-utils` so contributors run `yarn start` to preview the page in isolation against whichever `radarChart.baseUrl` is set in the dev app config.
 
 ## package.json key fields
 
@@ -133,7 +133,7 @@ Endpoints called:
 {
   "name": "@andreacarmisciano/plugin-radar-chart",
   "version": "0.1.0",
-  "description": "Backstage frontend plugin for stupid-radar-chart — generate KPI radar charts from any Backstage instance.",
+  "description": "Backstage frontend plugin — generate KPI radar charts from any Backstage instance via a remote chart-rendering service.",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -192,7 +192,7 @@ Endpoints called:
 
 ## CORS prerequisite (NOT in this plugin's scope)
 
-Cloud Run app must add CORS headers on `/api/*` allowing Backstage origin. Tracked separately in the Next.js repo. Plugin README must document this requirement.
+The upstream chart-rendering service must add CORS headers on `/api/*` allowing the Backstage origin. Tracked separately by the service owner. Plugin README documents this requirement.
 
 ## GitHub Actions release pipeline
 

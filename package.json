@@ -1,7 +1,7 @@
 {
   "name": "@andreacarmisciano/plugin-radar-chart",
   "version": "0.1.0",
-  "description": "Backstage frontend plugin for stupid-radar-chart — generate KPI radar charts from any Backstage instance.",
+  "description": "Backstage frontend plugin — generate KPI radar charts from any Backstage instance via a remote chart-rendering service.",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -60,6 +60,7 @@
     "eslint": "^10.4.0",
     "eslint-plugin-react": "^7.37.5",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.30.3"
   }
 }

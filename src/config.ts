@@ -1,7 +1,11 @@
 import { ConfigApi } from '@backstage/core-plugin-api';
 
-const DEFAULT_BASE_URL = 'https://stupid-radar-chart-873837240388.us-central1.run.app';
-
 export function getBaseUrl(config: ConfigApi): string {
-  return config.getOptionalString('radarChart.baseUrl') ?? DEFAULT_BASE_URL;
+  const baseUrl = config.getOptionalString('radarChart.baseUrl');
+  if (!baseUrl) {
+    throw new Error(
+      'radarChart.baseUrl is not configured. Set it in app-config.yaml under `radarChart.baseUrl`.',
+    );
+  }
+  return baseUrl.replace(/\/+$/, '');
 }
