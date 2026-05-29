@@ -2,6 +2,14 @@
   "name": "@ehicoso/plugin-radar-chart",
   "version": "0.1.0",
   "description": "Backstage frontend plugin — generate KPI radar charts from any Backstage instance via a remote chart-rendering service.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acarmisc/stupid-radar-chart-backstage-plugin.git"
+  },
+  "homepage": "https://github.com/acarmisc/stupid-radar-chart-backstage-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/acarmisc/stupid-radar-chart-backstage-plugin/issues"
+  },
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
