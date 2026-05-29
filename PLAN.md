@@ -1,4 +1,4 @@
-# Backstage Plugin Plan — `@andreacarmisciano/plugin-radar-chart`
+# Backstage Plugin Plan — `@ehicoso/plugin-radar-chart`
 
 Frontend-only Backstage plugin that talks to a remote chart-rendering service. No backend plugin. The remote service is the source of truth for KPI radar chart generation; this plugin embeds it natively in Backstage.
 
@@ -10,7 +10,7 @@ Frontend-only Backstage plugin that talks to a remote chart-rendering service. N
 - Backstage frontend system: **new** (`@backstage/frontend-plugin-api`) with classic export shim for back-compat where trivial
 - Form rewritten in **MUI** (drop Tailwind in plugin)
 - React 18 peer dep (Backstage native)
-- Package name: `@andreacarmisciano/plugin-radar-chart` (scoped, public on npmjs)
+- Package name: `@ehicoso/plugin-radar-chart` (scoped, public on npmjs)
 - License: MIT
 
 ## Repo layout (target)
@@ -137,7 +137,7 @@ Endpoints called:
 
 ```json
 {
-  "name": "@andreacarmisciano/plugin-radar-chart",
+  "name": "@ehicoso/plugin-radar-chart",
   "version": "0.1.0",
   "description": "Backstage frontend plugin — generate KPI radar charts from any Backstage instance via a remote chart-rendering service.",
   "main": "dist/index.cjs.js",
@@ -218,7 +218,7 @@ Steps:
 9. Create GitHub Release with auto-generated changelog
 
 Secrets required (documented in README):
-- `NPM_TOKEN` — npm automation token with publish scope on `@andreacarmisciano`
+- `NPM_TOKEN` — npm automation token with publish access on the `@ehicoso` org
 
 Optional: add a `pr-validation.yml` running lint + test + build on PRs (nice-to-have, agent decides if time permits).
 
@@ -263,7 +263,7 @@ Optional: add a `pr-validation.yml` running lint + test + build on PRs (nice-to-
 
 ## Acceptance
 
-- `npm install @andreacarmisciano/plugin-radar-chart` works after first tag
+- `npm install @ehicoso/plugin-radar-chart` works after first tag
 - Plugin renders on `/radar` route in a fresh Backstage app
 - EntityRadarChartCard appears on annotated Component entities only
 - Tagged release `v0.1.0` triggers workflow that publishes successfully

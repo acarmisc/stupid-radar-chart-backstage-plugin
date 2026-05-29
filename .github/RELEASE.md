@@ -1,6 +1,6 @@
 # Release & Publish
 
-This document describes how to cut a release and publish `@andreacarmisciano/plugin-radar-chart` to npm.
+This document describes how to cut a release and publish `@ehicoso/plugin-radar-chart` to npm.
 
 ## Prerequisites
 
@@ -8,16 +8,16 @@ Ensure you have:
 - Node 20+ installed
 - Commit access to this repository
 - GitHub repository admin access (to set secrets)
-- npm account with publish token for the `@andreacarmisciano` scope
+- npm account with publish token for the `@ehicoso` scope
 
 ## Setup (one-time)
 
 ### 1. Generate npm automation token
 
-1. Go to https://www.npmjs.com/settings/andreacarmisciano/tokens
+1. Go to https://www.npmjs.com/settings/ehicoso/tokens
 2. Click **"Generate new token"** → **Granular Access Token**
 3. Set permissions:
-   - **Scope**: `@andreacarmisciano` 
+   - **Scope**: `@ehicoso` 
    - **Permissions**: Read and write on packages
    - **Expiration**: 1 year (or your preference)
 4. Copy the token (shown once)
@@ -74,7 +74,7 @@ The tag push will **automatically**:
 Check that the package is available on npm:
 
 ```bash
-npm view @andreacarmisciano/plugin-radar-chart
+npm view @ehicoso/plugin-radar-chart
 ```
 
 You should see the latest version listed, along with publication timestamp.
@@ -105,12 +105,12 @@ If you need to unpublish or deprecate a version:
 ### Deprecate (recommended)
 
 ```bash
-npm deprecate @andreacarmisciano/plugin-radar-chart@X.Y.Z "reason"
+npm deprecate @ehicoso/plugin-radar-chart@X.Y.Z "reason"
 ```
 
 Example:
 ```bash
-npm deprecate @andreacarmisciano/plugin-radar-chart@0.1.0 "Security issue — use 0.1.1 instead"
+npm deprecate @ehicoso/plugin-radar-chart@0.1.0 "Security issue — use 0.1.1 instead"
 ```
 
 This marks the version as deprecated on npm without removing it (unpublish is not allowed after 72 hours).
@@ -118,7 +118,7 @@ This marks the version as deprecated on npm without removing it (unpublish is no
 ### Unpublish (within 72 hours only)
 
 ```bash
-npm unpublish @andreacarmisciano/plugin-radar-chart@X.Y.Z
+npm unpublish @ehicoso/plugin-radar-chart@X.Y.Z
 ```
 
 ## Workflow specification

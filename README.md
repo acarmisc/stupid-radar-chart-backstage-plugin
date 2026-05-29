@@ -1,4 +1,4 @@
-# @andreacarmisciano/plugin-radar-chart
+# @ehicoso/plugin-radar-chart
 
 Frontend-only Backstage plugin that embeds KPI radar charts produced by a remote chart-rendering service. The plugin issues HTTP calls directly from the browser to a service base URL you provide — no Backstage backend plugin required.
 
@@ -34,14 +34,14 @@ Access-Control-Allow-Headers: Content-Type
 ## Installation
 
 ```bash
-yarn add @andreacarmisciano/plugin-radar-chart
+yarn add @ehicoso/plugin-radar-chart
 ```
 
 ## Usage (new frontend system)
 
 ```typescript
 // packages/app/src/App.tsx
-import radarChartPlugin from '@andreacarmisciano/plugin-radar-chart';
+import radarChartPlugin from '@ehicoso/plugin-radar-chart';
 
 const app = createApp({
   features: [
@@ -60,7 +60,7 @@ import {
   radarChartPlugin,
   RadarPage,
   EntityRadarChartCard,
-} from '@andreacarmisciano/plugin-radar-chart';
+} from '@ehicoso/plugin-radar-chart';
 
 // Register the plugin
 const app = createApp({ plugins: [radarChartPlugin] });
@@ -146,7 +146,7 @@ Mount on a route (`/radar` by convention) to expose:
 ## Release / CI
 
 - `.github/workflows/ci.yml` — lint + test + build on push and PR to `main`.
-- `.github/workflows/release.yml` — publishes to npm and creates a GitHub release on tags matching `v*.*.*`. Requires the `NPM_TOKEN` repository secret (npm automation token with publish access to the `@andreacarmisciano` scope).
+- `.github/workflows/release.yml` — publishes to npm and creates a GitHub release on tags matching `v*.*.*`. Requires the `NPM_TOKEN` repository secret (npm automation token with publish access to the `@ehicoso` scope).
 
 ## License
 
