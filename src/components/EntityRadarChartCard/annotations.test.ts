@@ -1,148 +1,120 @@
 import { Entity } from '@backstage/catalog-model';
 import {
   parseRadarAnnotations,
+  validateKpisPayload,
   entityHasRadarChartAnnotation,
   AnnotationParseError,
-  RADAR_CHART_KPI_ANNOTATION,
+  RADAR_CHART_KPI_URL_ANNOTATION,
   RADAR_CHART_TITLE_ANNOTATION,
   RADAR_CHART_SHOW_AUTHOR_ANNOTATION,
 } from './annotations';
 
-describe('EntityRadarChartCard annotations', () => {
-  const createEntity = (annotations: Record<string, string> = {}): Entity => ({
-    apiVersion: 'backstage.io/v1alpha1',
-    kind: 'Component',
-    metadata: {
-      name: 'test-component',
-      namespace: 'default',
-      annotations,
-    },
+const createEntity = (annotations: Record<string, string> = {}): Entity => ({
+  apiVersion: 'backstage.io/v1alpha1',
+  kind: 'Component',
+  metadata: {
+    name: 'test-component',
+    namespace: 'default',
+    annotations,
+  },
+});
+
+describe('parseRadarAnnotations', () => {
+  it('returns null when kpi-url annotation is missing', () => {
+    expect(parseRadarAnnotations(createEntity())).toBeNull();
   });
 
-  describe('parseRadarAnnotations', () => {
-    it('returns null when annotation is missing', () => {
-      const entity = createEntity();
-      expect(parseRadarAnnotations(entity)).toBeNull();
+  it('extracts a valid absolute kpi-url', () => {
+    const entity = createEntity({
+      [RADAR_CHART_KPI_URL_ANNOTATION]: 'https://example.test/kpis.json',
     });
-
-    it('parses valid JSON with all locked KPIs', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":80,"ai":40,"team":90,"research":55,"unspecified":30}',
-      });
-      const result = parseRadarAnnotations(entity);
-      expect(result).toEqual({
-        kpis: { author: 80, ai: 40, team: 90, research: 55, unspecified: 30 },
-        showAuthor: true,
-      });
-    });
-
-    it('defaults missing locked KPIs to 50', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":80}',
-      });
-      const result = parseRadarAnnotations(entity);
-      expect(result?.kpis).toEqual({
-        author: 80,
-        ai: 50,
-        team: 50,
-        research: 50,
-        unspecified: 50,
-      });
-    });
-
-    it('preserves custom KPI keys (forward-compat)', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":80,"customKpi":75}',
-      });
-      const result = parseRadarAnnotations(entity);
-      expect(result?.kpis.customKpi).toBe(75);
-    });
-
-    it('parses optional title annotation', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":50}',
-        [RADAR_CHART_TITLE_ANNOTATION]: 'My Custom Title',
-      });
-      const result = parseRadarAnnotations(entity);
-      expect(result?.title).toBe('My Custom Title');
-    });
-
-    it('parses optional show-author annotation as true', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":50}',
-        [RADAR_CHART_SHOW_AUTHOR_ANNOTATION]: 'true',
-      });
-      const result = parseRadarAnnotations(entity);
-      expect(result?.showAuthor).toBe(true);
-    });
-
-    it('parses optional show-author annotation as false', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":50}',
-        [RADAR_CHART_SHOW_AUTHOR_ANNOTATION]: 'false',
-      });
-      const result = parseRadarAnnotations(entity);
-      expect(result?.showAuthor).toBe(false);
-    });
-
-    it('defaults show-author to true when not specified', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":50}',
-      });
-      const result = parseRadarAnnotations(entity);
-      expect(result?.showAuthor).toBe(true);
-    });
-
-    it('throws on malformed JSON', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: 'not json',
-      });
-      expect(() => parseRadarAnnotations(entity)).toThrow(AnnotationParseError);
-      expect(() => parseRadarAnnotations(entity)).toThrow(/Failed to parse/);
-    });
-
-    it('throws on non-object JSON', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '["array"]',
-      });
-      expect(() => parseRadarAnnotations(entity)).toThrow(AnnotationParseError);
-      expect(() => parseRadarAnnotations(entity)).toThrow(/must be a JSON object/);
-    });
-
-    it('throws on out-of-range KPI value', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":150}',
-      });
-      expect(() => parseRadarAnnotations(entity)).toThrow(AnnotationParseError);
-      expect(() => parseRadarAnnotations(entity)).toThrow(/invalid value/);
-    });
-
-    it('throws on KPI value below 1', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":0}',
-      });
-      expect(() => parseRadarAnnotations(entity)).toThrow(AnnotationParseError);
-    });
-
-    it('throws on non-numeric KPI value', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":"eighty"}',
-      });
-      expect(() => parseRadarAnnotations(entity)).toThrow(AnnotationParseError);
+    expect(parseRadarAnnotations(entity)).toEqual({
+      kpiUrl: 'https://example.test/kpis.json',
+      showAuthor: true,
     });
   });
 
-  describe('entityHasRadarChartAnnotation', () => {
-    it('returns true when annotation is present', () => {
-      const entity = createEntity({
-        [RADAR_CHART_KPI_ANNOTATION]: '{"author":50}',
-      });
-      expect(entityHasRadarChartAnnotation(entity)).toBe(true);
+  it('trims surrounding whitespace from kpi-url', () => {
+    const entity = createEntity({
+      [RADAR_CHART_KPI_URL_ANNOTATION]: '  https://example.test/k  ',
     });
+    expect(parseRadarAnnotations(entity)?.kpiUrl).toBe('https://example.test/k');
+  });
 
-    it('returns false when annotation is missing', () => {
-      const entity = createEntity();
-      expect(entityHasRadarChartAnnotation(entity)).toBe(false);
+  it('throws on invalid URL', () => {
+    const entity = createEntity({
+      [RADAR_CHART_KPI_URL_ANNOTATION]: 'not a url',
     });
+    expect(() => parseRadarAnnotations(entity)).toThrow(AnnotationParseError);
+    expect(() => parseRadarAnnotations(entity)).toThrow(/valid absolute URL/);
+  });
+
+  it('parses optional title annotation', () => {
+    const entity = createEntity({
+      [RADAR_CHART_KPI_URL_ANNOTATION]: 'https://example.test/k',
+      [RADAR_CHART_TITLE_ANNOTATION]: 'My Custom Title',
+    });
+    expect(parseRadarAnnotations(entity)?.title).toBe('My Custom Title');
+  });
+
+  it('honors show-author = "false"', () => {
+    const entity = createEntity({
+      [RADAR_CHART_KPI_URL_ANNOTATION]: 'https://example.test/k',
+      [RADAR_CHART_SHOW_AUTHOR_ANNOTATION]: 'false',
+    });
+    expect(parseRadarAnnotations(entity)?.showAuthor).toBe(false);
+  });
+
+  it('defaults show-author to true', () => {
+    const entity = createEntity({
+      [RADAR_CHART_KPI_URL_ANNOTATION]: 'https://example.test/k',
+    });
+    expect(parseRadarAnnotations(entity)?.showAuthor).toBe(true);
+  });
+});
+
+describe('entityHasRadarChartAnnotation', () => {
+  it('returns true when kpi-url annotation is present', () => {
+    expect(
+      entityHasRadarChartAnnotation(
+        createEntity({ [RADAR_CHART_KPI_URL_ANNOTATION]: 'https://example.test/k' }),
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false when annotation is missing', () => {
+    expect(entityHasRadarChartAnnotation(createEntity())).toBe(false);
+  });
+});
+
+describe('validateKpisPayload', () => {
+  it('accepts valid KPI object and fills missing locked KPIs to 50', () => {
+    expect(validateKpisPayload({ author: 80 })).toEqual({
+      author: 80,
+      ai: 50,
+      team: 50,
+      research: 50,
+      unspecified: 50,
+    });
+  });
+
+  it('preserves custom KPI keys (forward-compat)', () => {
+    const out = validateKpisPayload({ author: 80, customKpi: 75 });
+    expect(out.customKpi).toBe(75);
+  });
+
+  it('throws on non-object payload', () => {
+    expect(() => validateKpisPayload(null)).toThrow(AnnotationParseError);
+    expect(() => validateKpisPayload(['x'])).toThrow(AnnotationParseError);
+    expect(() => validateKpisPayload('string')).toThrow(AnnotationParseError);
+  });
+
+  it('throws on out-of-range value', () => {
+    expect(() => validateKpisPayload({ author: 150 })).toThrow(/invalid value/);
+    expect(() => validateKpisPayload({ author: 0 })).toThrow(/invalid value/);
+  });
+
+  it('throws on non-numeric value', () => {
+    expect(() => validateKpisPayload({ author: 'eighty' })).toThrow(/invalid value/);
   });
 });

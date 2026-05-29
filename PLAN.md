@@ -89,19 +89,25 @@ Required: the plugin throws at runtime if `radarChart.baseUrl` is not configured
 ```yaml
 metadata:
   annotations:
-    radar-chart/kpis: '{"author":80,"ai":40,"team":90,"research":55,"unspecified":30}'
-    radar-chart/title: "Optional title override"      # optional
-    radar-chart/show-author: "false"                  # optional, default true
+    stupid-radar-chart/kpi-url: 'https://kpis.example.test/my-service.json'
+    stupid-radar-chart/title: "Optional title override"      # optional
+    stupid-radar-chart/show-author: "false"                  # optional, default true
 ```
 
-Card filter: only renders when `radar-chart/kpis` annotation is present. No empty state on unannotated entities.
+Card filter: only renders when `stupid-radar-chart/kpi-url` annotation is present. No empty state on unannotated entities.
+
+The annotation points at an absolute URL. The card fetches it at render time, so KPI values are decoupled from `catalog-info.yaml` lifecycle — the URL owner can update values without a catalog commit.
 
 Validation rules in `annotations.ts`:
-- JSON must parse
-- Values must be numbers 1..100
+- `stupid-radar-chart/kpi-url` must parse via `new URL(...)`
+- Fetched payload must be a JSON object (not array, not primitive)
+- Values must be finite numbers in 1..100
 - Unknown KPI keys allowed (forward-compat)
-- If parse fails → render `<ResponseErrorPanel/>` with parse error
 - All locked KPI keys (`author`, `ai`, `team`, `research`, `unspecified`) optional → default 50 when missing
+- Parse error, network error, or invalid payload → render `<ResponseErrorPanel/>` inside the `InfoCard`
+- In-flight request → render `<Progress/>` inside the `InfoCard`
+
+The KPI URL endpoint must serve `Content-Type: application/json` and allow CORS from the Backstage origin.
 
 ## RadarApi surface
 

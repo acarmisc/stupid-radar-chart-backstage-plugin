@@ -76,14 +76,22 @@ const app = createApp({ plugins: [radarChartPlugin] });
 
 ## Annotations: `EntityRadarChartCard`
 
-### Required: `radar-chart/kpis`
+### Required: `stupid-radar-chart/kpi-url`
 
-JSON object mapping KPI name → integer in `[1, 100]`. Unknown keys are preserved (forward-compatible). The locked KPI names (`author`, `ai`, `team`, `research`, `unspecified`) default to `50` when omitted.
+Absolute URL that returns a JSON object mapping KPI name → integer in `[1, 100]`. The card fetches this URL on render, so KPI values can change without editing `catalog-info.yaml`.
+
+The endpoint must:
+
+- respond with `Content-Type: application/json`,
+- return a JSON object (not an array),
+- allow CORS requests from the Backstage origin (`Access-Control-Allow-Origin`).
+
+Unknown KPI keys are preserved (forward-compatible). The locked KPI names (`author`, `ai`, `team`, `research`, `unspecified`) default to `50` when omitted from the payload.
 
 ### Optional
 
-- `radar-chart/title` — overrides the card title (defaults to entity name).
-- `radar-chart/show-author` — `"true"` (default) or `"false"`.
+- `stupid-radar-chart/title` — overrides the card title (defaults to entity name).
+- `stupid-radar-chart/show-author` — `"true"` (default) or `"false"`.
 
 ### Example `catalog-info.yaml`
 
@@ -93,24 +101,33 @@ kind: Component
 metadata:
   name: my-service
   annotations:
-    radar-chart/kpis: |
-      {
-        "author": 85,
-        "ai": 40,
-        "team": 90,
-        "research": 60,
-        "unspecified": 50,
-        "customKpi": 75
-      }
-    radar-chart/title: "My Service KPIs"
-    radar-chart/show-author: "true"
+    stupid-radar-chart/kpi-url: 'https://kpis.example.test/my-service.json'
+    stupid-radar-chart/title: 'My Service KPIs'
+    stupid-radar-chart/show-author: 'true'
 spec:
   type: service
   lifecycle: production
   owner: team-a
 ```
 
-Malformed JSON or out-of-range values render a `ResponseErrorPanel` instead of the chart.
+### Expected payload shape
+
+```json
+{
+  "author": 85,
+  "ai": 40,
+  "team": 90,
+  "research": 60,
+  "unspecified": 50,
+  "customKpi": 75
+}
+```
+
+Behavior:
+
+- annotation missing → card not rendered,
+- URL not parseable, fetch fails, or payload invalid → `ResponseErrorPanel` rendered inside the card,
+- request in flight → `Progress` indicator inside the card.
 
 ## `RadarPage`
 

@@ -1,6 +1,7 @@
 import React from 'react';
+import { useAsync } from 'react-use';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { ResponseErrorPanel, InfoCard } from '@backstage/core-components';
+import { ResponseErrorPanel, InfoCard, Progress } from '@backstage/core-components';
 import {
   Chart as ChartJS,
   RadialLinearScale,
@@ -10,40 +11,73 @@ import {
   Tooltip,
 } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
-import { parseRadarAnnotations, AnnotationParseError, entityHasRadarChartAnnotation } from './annotations';
+import {
+  parseRadarAnnotations,
+  validateKpisPayload,
+  AnnotationParseError,
+  entityHasRadarChartAnnotation,
+} from './annotations';
 
 ChartJS.register(RadialLinearScale, LineElement, PointElement, Filler, Tooltip);
 
 export const EntityRadarChartCard: React.FC = () => {
   const { entity } = useEntity();
 
-  // Filter: only render if annotation is present
   if (!entityHasRadarChartAnnotation(entity)) {
     return null;
   }
 
-  let data: { kpis: Record<string, number>; title?: string; showAuthor: boolean };
+  let annotation;
   try {
-    const result = parseRadarAnnotations(entity);
-    if (!result) {
-      return null;
-    }
-    data = result;
+    annotation = parseRadarAnnotations(entity);
   } catch (e) {
-    const errorMessage = e instanceof AnnotationParseError ? e.message : String(e);
+    const message = e instanceof AnnotationParseError ? e.message : String(e);
     return (
       <InfoCard title="Radar Chart">
-        <ResponseErrorPanel error={new Error(errorMessage)} />
+        <ResponseErrorPanel error={new Error(message)} />
       </InfoCard>
     );
   }
 
-  // Sort KPI names for consistent label ordering
-  const labels = Object.keys(data.kpis)
+  if (!annotation) {
+    return null;
+  }
+
+  const cardTitle = annotation.title || entity.metadata.name || 'Radar Chart';
+
+  return <KpiChart kpiUrl={annotation.kpiUrl} title={cardTitle} />;
+};
+
+const KpiChart: React.FC<{ kpiUrl: string; title: string }> = ({ kpiUrl, title }) => {
+  const { loading, error, value: kpis } = useAsync(async () => {
+    const response = await fetch(kpiUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch KPIs (${response.status} ${response.statusText})`);
+    }
+    const payload = await response.json();
+    return validateKpisPayload(payload);
+  }, [kpiUrl]);
+
+  if (loading) {
+    return (
+      <InfoCard title={title}>
+        <Progress />
+      </InfoCard>
+    );
+  }
+
+  if (error || !kpis) {
+    return (
+      <InfoCard title={title}>
+        <ResponseErrorPanel error={error ?? new Error('Empty KPI payload')} />
+      </InfoCard>
+    );
+  }
+
+  const labels = Object.keys(kpis)
     .sort()
     .map(k => k.charAt(0).toUpperCase() + k.slice(1));
-
-  const values = labels.map(label => data.kpis[label.toLowerCase()]);
+  const values = labels.map(label => kpis[label.toLowerCase()]);
 
   const chartData = {
     labels,
@@ -91,10 +125,8 @@ export const EntityRadarChartCard: React.FC = () => {
     },
   };
 
-  const cardTitle = data.title || entity.metadata.name || 'Radar Chart';
-
   return (
-    <InfoCard title={cardTitle}>
+    <InfoCard title={title}>
       <div style={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Radar data={chartData} options={chartOptions} />
       </div>
