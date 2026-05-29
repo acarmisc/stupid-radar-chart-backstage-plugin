@@ -19,7 +19,10 @@
   },
   "backstage": {
     "role": "frontend-plugin",
-    "pluginId": "radar-chart"
+    "pluginId": "radar-chart",
+    "pluginPackages": [
+      "@ehicoso/plugin-radar-chart"
+    ]
   },
   "configSchema": "config.d.ts",
   "scripts": {
