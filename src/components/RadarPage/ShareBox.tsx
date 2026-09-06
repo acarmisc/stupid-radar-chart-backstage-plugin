@@ -2,13 +2,10 @@ import React, { useCallback } from 'react';
 import { Box, Button, TextField, Paper, Typography } from '@material-ui/core';
 
 export interface ShareBoxProps {
-  slug: string;
-  baseUrl: string;
+  url: string;
 }
 
-export const ShareBox: React.FC<ShareBoxProps> = ({ slug, baseUrl }) => {
-  const url = `${baseUrl}/s/${slug}`;
-
+export const ShareBox: React.FC<ShareBoxProps> = ({ url }) => {
   const copyToClipboard = useCallback(() => {
     navigator.clipboard.writeText(url);
   }, [url]);

@@ -6,5 +6,10 @@ export interface Config {
      * @visibility frontend
      */
     baseUrl: string;
+    /**
+     * Bearer token for the radar chart service API.
+     * @visibility frontend
+     */
+    apiKey?: string;
   };
 }

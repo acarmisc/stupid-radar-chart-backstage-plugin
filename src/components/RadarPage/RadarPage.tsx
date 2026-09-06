@@ -1,17 +1,16 @@
-import React, { useState, useCallback } from 'react';
-import { useApi, configApiRef } from '@backstage/core-plugin-api';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useApi, identityApiRef } from '@backstage/core-plugin-api';
 import { Page, Header, Content } from '@backstage/core-components';
 import { Box, Button, Grid, CircularProgress } from '@material-ui/core';
 import { radarApiRef } from '../../api/RadarApi';
 import { ChartConfig } from '../../api/types';
-import { getBaseUrl } from '../../config';
 import { ConfigForm } from './ConfigForm';
 import { ChartPreview } from './ChartPreview';
 import { ShareBox } from './ShareBox';
 
 const DEFAULT_CONFIG: ChartConfig = {
   title: 'Project Radar',
-  author: 'Team',
+  author: '',
   deliverableType: 'other',
   showAuthor: true,
   extraKpi: null,
@@ -26,22 +25,32 @@ const DEFAULT_CONFIG: ChartConfig = {
 
 export const RadarPage: React.FC = () => {
   const radarApi = useApi(radarApiRef);
-  const configApi = useApi(configApiRef);
-  const baseUrl = getBaseUrl(configApi);
+  const identityApi = useApi(identityApiRef);
 
   const [config, setConfig] = useState<ChartConfig>(DEFAULT_CONFIG);
+
+  useEffect(() => {
+    identityApi.getProfileInfo().then(profile => {
+      if (profile.displayName) {
+        setConfig(c => ({ ...c, author: profile.displayName! }));
+      }
+    });
+  }, [identityApi]);
   const [saving, setSaving] = useState(false);
-  const [slug, setSlug] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const handleReset = useCallback(() => {
-    setConfig({ ...DEFAULT_CONFIG });
-  }, []);
+    identityApi.getProfileInfo().then(profile => {
+      setConfig({ ...DEFAULT_CONFIG, author: profile.displayName ?? '' });
+    });
+    setShareUrl(null);
+  }, [identityApi]);
 
   const handleGenerateAndSave = useCallback(async () => {
     setSaving(true);
     try {
       const result = await radarApi.saveChart(config);
-      setSlug(result.slug);
+      setShareUrl(result.url);
 
       // Trigger PNG download
       const kpis: Record<string, number> = { ...config.lockedValues };
@@ -108,7 +117,7 @@ export const RadarPage: React.FC = () => {
               </Button>
             </Box>
 
-            {slug && <ShareBox slug={slug} baseUrl={baseUrl} />}
+            {shareUrl && <ShareBox url={shareUrl} />}
           </Grid>
         </Grid>
       </Content>

@@ -1,6 +1,6 @@
 {
   "name": "@ehicoso/plugin-radar-chart",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Backstage frontend plugin — generate KPI radar charts from any Backstage instance via a remote chart-rendering service.",
   "license": "MIT",
   "author": "acarmisc <andrea.carmisciano@gmail.com>",

@@ -9,3 +9,7 @@ export function getBaseUrl(config: ConfigApi): string {
   }
   return baseUrl.replace(/\/+$/, '');
 }
+
+export function getApiKey(config: ConfigApi): string | undefined {
+  return config.getOptionalString('radarChart.apiKey');
+}

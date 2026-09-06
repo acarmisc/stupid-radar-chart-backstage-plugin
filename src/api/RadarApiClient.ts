@@ -2,20 +2,26 @@ import { ConfigApi } from '@backstage/core-plugin-api';
 import { ResponseError } from '@backstage/errors';
 import { RadarApi } from './RadarApi';
 import { GenerateRequest, SavedChart, ChartConfig } from './types';
-import { getBaseUrl } from '../config';
+import { getBaseUrl, getApiKey } from '../config';
 
 export class RadarApiClient implements RadarApi {
   private baseUrl: string;
+  private apiKey: string | undefined;
 
   constructor(config: ConfigApi) {
     this.baseUrl = getBaseUrl(config);
+    this.apiKey = getApiKey(config);
+  }
+
+  private authHeaders(): HeadersInit {
+    return this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {};
   }
 
   async generatePng(req: GenerateRequest): Promise<Blob> {
     const { title, author, deliverableType, kpis, showAuthor } = req;
     const response = await fetch(`${this.baseUrl}/api/generate-radar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
       body: JSON.stringify({
         title,
         author,
@@ -35,9 +41,9 @@ export class RadarApiClient implements RadarApi {
   async saveChart(config: ChartConfig): Promise<{ slug: string; url: string }> {
     const { title, author, deliverableType, showAuthor, lockedValues, extraKpi } = config;
 
-    const response = await fetch(`${this.baseUrl}/api/charts?out=picture`, {
+    const response = await fetch(`${this.baseUrl}/api/charts?out=url`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
       body: JSON.stringify({
         title,
         author,
@@ -52,19 +58,8 @@ export class RadarApiClient implements RadarApi {
       throw await ResponseError.fromResponse(response);
     }
 
-    // We read the blob to consume the response, but we don't need to use it
-    // since we just need the slug from the headers
-    await response.blob();
-    const slug = response.headers.get('X-Chart-Slug');
-
-    if (!slug) {
-      throw new Error('No chart slug returned from server');
-    }
-
-    return {
-      slug,
-      url: `${this.baseUrl}/s/${slug}`,
-    };
+    const data = await response.json();
+    return { slug: data.slug, url: data.url };
   }
 
   async getChart(slug: string): Promise<SavedChart> {
